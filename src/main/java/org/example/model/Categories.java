@@ -22,4 +22,12 @@ public class Categories {
     @JsonProperty("childs")
     @Transient
     private List<Categories> childs;
+
+    public Categories(long id, String shard) {
+        this.id = id;
+        this.shard = shard;
+    }
+
+    public Categories() {
+    }
 }

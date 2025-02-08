@@ -16,8 +16,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
-import java.util.stream.Collectors;
 
 @Component
 public class ProductPublisherBot extends TelegramLongPollingBot {
@@ -29,7 +27,11 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
     private final List<String> hashtags = Arrays.asList(
             "#выгодно", "#акция",
             "#промокоды", "#скидки", "#распродажа",
-            "#маркетплейсы", "#экономия"
+            "#маркетплейсы", "#экономия", "#wb",
+            "#wilbberies", "#ozon", "#покупки", "#шопинг", "#новинка", "#sale",
+            "#покупкионлайн", "#промо", "#покупкионлайн", "#горячиескидки", "#спецпредложения", "#шопингонлайн",
+            "#дешевленекуда", "#лучшиецены", "#wildberriesскидки", "#ozonвыгода", "#советыпокупки", "#каксэкономить",
+            "#полезныесоветы", "#модныепокупки", "#рекомендации", "#горячиескидки", "#спецпредложения", "#шопингонлайн"
     );
 
     @Autowired
@@ -53,7 +55,7 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
     /**
      * Метод для публикации товаров каждые 15 минут.
      */
-    @Scheduled(fixedDelay = 900000) // 15 минут = 900 000 миллисекунд
+    @Scheduled(fixedDelay = 600000) // 15 минут = 900 000 миллисекунд
     public void publishProducts() {
         // Найти товары, которые еще не были опубликованы
         List<Product> unpublishedProducts = productRepository.findByPostedFalse();
@@ -79,7 +81,7 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
                     escapedBasicPrice, // Уже экранировано
                     escapedProductPrice, // Уже экранировано
                     product.getId(),
-                    getNextHashtag()
+                    getNextHashtags()
             );
 
 
@@ -152,19 +154,18 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
                 .replace("!", "\\!");
     }
 
-    private String getNextHashtag() {
-        // Получаем текущий хэштег
-        String hashtag = hashtags.get(currentHashtagIndex);
+    private String getNextHashtags() {
+        StringBuilder hashtagsBuilder = new StringBuilder();
+        hashtagsBuilder.append("🔥 [Мир скидок](https://t.me/+DJHQEb0s6D9kZjYy) "); // Добавляем ссылку один раз
+        Collections.shuffle(hashtags);
+        for (int i = 0; i < 3; i++) {
+            String hashtag = hashtags.get(currentHashtagIndex);
+            hashtagsBuilder.append(hashtag.replace("#", "\\#")).append(" "); // Добавляем хэштег
 
-        // Добавляем ссылку перед хэштегом
-        String formattedHashtag = String.format(
-                "[Мир скидок](https://t.me/+DJHQEb0s6D9kZjYy) %s",
-                hashtag.replace("#", "\\#") // Экранируем символ '#'
-        );
+            // Переходим к следующему хэштегу
+            currentHashtagIndex = (currentHashtagIndex + 1) % hashtags.size();
+        }
 
-        // Переходим к следующему хэштегу
-        currentHashtagIndex = (currentHashtagIndex + 1) % hashtags.size();
-
-        return formattedHashtag;
+        return hashtagsBuilder.toString().trim(); // Убираем лишний пробел в конце
     }
 }
