@@ -22,12 +22,12 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
 
     private static final String BOT_TOKEN = "7807555157:AAGyXDruNDICaJYp2aG69uUfEfWoYpXrzx8";
     private static final String CHANNEL_ID = "@skidki_Ozon_Wildberries_sale";
-    // private static final String CHANNEL_ID = "@public_products";
+    //private static final String CHANNEL_ID = "@public_products";
     private int currentHashtagIndex = 0;
     private final List<String> hashtags = Arrays.asList(
             "#выгодно", "#акция",
             "#промокоды", "#скидки", "#распродажа",
-            "#маркетплейсы", "#экономия", "#wb",
+            "#маркетплейсы", "#экономия", "#wb", "#мода",
             "#wilbberies", "#ozon", "#покупки", "#шопинг", "#новинка", "#sale",
             "#покупкионлайн", "#промо", "#покупкионлайн", "#горячиескидки", "#спецпредложения", "#шопингонлайн",
             "#дешевленекуда", "#лучшиецены", "#wildberriesскидки", "#ozonвыгода", "#советыпокупки", "#каксэкономить",
@@ -36,6 +36,9 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private ProductService productService;
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -61,46 +64,51 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
         List<Product> unpublishedProducts = productRepository.findByPostedFalse();
 
         if (!unpublishedProducts.isEmpty()) {
-            // Берем первый товар из списка
+            // Перемешиваем список товаров
             Collections.shuffle(unpublishedProducts);
 
+            // Берем первый товар из списка
             Product product = unpublishedProducts.get(0);
 
-            // Экранируем только те части, которые не являются Markdown-разметкой
-            String escapedName = escapeMarkdownV2(product.getName());
-            String escapedProductPrice = escapeMarkdownV2(String.valueOf(product.getProduct()));
-            String escapedBasicPrice = escapeMarkdownV2(String.valueOf(product.getBasic()));
+            // Проверяем, что количество товара не меньше 3 и цена не равна 0
+            if (product.getTotalQuantity() >= 3 && product.getProduct() > 0) {
+                // Экранируем только те части, которые не являются Markdown-разметкой
+                String escapedName = escapeMarkdownV2(product.getName());
+                String escapedProductPrice = escapeMarkdownV2(String.valueOf(product.getProduct()));
+                String escapedBasicPrice = escapeMarkdownV2(String.valueOf(product.getBasic()));
 
-            // Формируем сообщение для публикации
-            String message = String.format(
-                    "✨ *%s* ✨\n\n" + // Упрощенная разметка
-                            "🤑 Цена: ~%s~ ₽ \\- %s ₽ \n\n" + // Экранируем дефис
-                            "👉 [Ссылка на товар](https://www.wildberries.ru/catalog/%d/detail.aspx) \n" +
-                            "\n%s",
-                    escapedName, // Уже экранировано
-                    escapedBasicPrice, // Уже экранировано
-                    escapedProductPrice, // Уже экранировано
-                    product.getId(),
-                    getNextHashtags()
-            );
+                // Формируем сообщение для публикации
+                String message = String.format(
+                        "✨ *%s* ✨\n\n" + // Упрощенная разметка
+                                "🤑 Цена: ~%s~ ₽ \\- %s ₽ \n\n" + // Экранируем дефис
+                                "👉 [Ссылка на товар](https://www.wildberries.ru/catalog/%d/detail.aspx) \n" +
+                                "\n%s",
+                        escapedName, // Уже экранировано
+                        escapedBasicPrice, // Уже экранировано
+                        escapedProductPrice, // Уже экранировано
+                        product.getId(),
+                        getNextHashtags()
+                );
 
+                try {
+                    if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
+                        // Если есть изображение, отправляем фото с описанием
+                        sendPhotoWithCaption(product, message);
+                    } else {
+                        // Если изображение отсутствует, отправляем только текст
+                        sendTextMessage(message);
+                    }
 
-            try {
-                if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
-                    // Если есть изображение, отправляем фото с описанием
-                    sendPhotoWithCaption(product, message);
-                } else {
-                    // Если изображение отсутствует, отправляем только текст
-                    sendTextMessage(message);
+                    // Обновляем флаг posted в базе данных
+                    product.setPosted(true);
+                    productService.save(product);
+                    System.out.println("Товар успешно опубликован: " + product.getName());
+                } catch (Exception e) {
+                    System.out.println("Ошибка при публикации товара: " + product.getName());
+                    e.printStackTrace();
                 }
-
-                // Обновляем флаг posted в базе данных
-                product.setPosted(true);
-                productRepository.save(product);
-                System.out.println("Товар успешно опубликован: " + product.getName());
-            } catch (Exception e) {
-                System.out.println("Ошибка при публикации товара: " + product.getName());
-                e.printStackTrace();
+            } else {
+                System.out.println("Товар не опубликован, так как его количество меньше 3 или цена равна 0: " + product.getName());
             }
         } else {
             System.out.println("Нет товаров для публикации.");

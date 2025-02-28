@@ -117,12 +117,12 @@ public class СlothesParser {
 
             int sale = (int) (((double) (product.getOldPrice() - product.getProduct()) / product.getOldPrice()) * 100);
 
-            if (sale > 55 && product.getTotalQuantity() > 3 && product.getProduct() < product.getOldPrice() && product.getOldPrice() != 0) {
+            if (sale > 50 && product.getTotalQuantity() > 3 && product.getProduct() < product.getOldPrice() && product.getOldPrice() != 0) {
                 String imagePath = imageDownloader.downloadImage(product.getId());
                 if (imagePath != null) {
                     product.setImagePath(imagePath);
                 }
-                productService.save(product);
+                productService.saveNewProduct(product);
             } else {
                 log.warn("Условия не подходят для одежды {}. Пропускаем.", product.getId());
             }
