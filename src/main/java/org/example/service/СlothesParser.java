@@ -31,13 +31,12 @@ public class СlothesParser {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final PriceHistoryService priceHistoryService;
-    private final ImageDownloader imageDownloader;
+
     private final ProductService productService;
 
     @Autowired
-    public СlothesParser(PriceHistoryService priceHistoryService, ImageDownloader imageDownloader, ProductService productService) {
+    public СlothesParser(PriceHistoryService priceHistoryService, ProductService productService) {
         this.priceHistoryService = priceHistoryService;
-        this.imageDownloader = imageDownloader;
         this.productService = productService;
     }
 
@@ -118,10 +117,6 @@ public class СlothesParser {
             int sale = (int) (((double) (product.getOldPrice() - product.getProduct()) / product.getOldPrice()) * 100);
 
             if (sale > 50 && product.getTotalQuantity() > 3 && product.getProduct() < product.getOldPrice() && product.getOldPrice() != 0) {
-                String imagePath = imageDownloader.downloadImage(product.getId());
-                if (imagePath != null) {
-                    product.setImagePath(imagePath);
-                }
                 productService.saveNewProduct(product);
             } else {
                 log.warn("Условия не подходят для одежды {}. Пропускаем.", product.getId());

@@ -1,5 +1,6 @@
 package org.example.service;
 
+import jakarta.annotation.PostConstruct;
 import org.example.model.Product;
 import org.example.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,6 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
 
     private static final String BOT_TOKEN = "7807555157:AAGyXDruNDICaJYp2aG69uUfEfWoYpXrzx8";
     private static final String CHANNEL_ID = "@skidki_Ozon_Wildberries_sale";
-    //private static final String CHANNEL_ID = "@public_products";
     private int currentHashtagIndex = 0;
     private final List<String> hashtags = Arrays.asList(
             "#выгодно", "#акция",
@@ -34,11 +34,20 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
             "#полезныесоветы", "#модныепокупки", "#рекомендации", "#горячиескидки", "#спецпредложения", "#шопингонлайн"
     );
 
-    @Autowired
     private ProductRepository productRepository;
 
-    @Autowired
+    private ImageDownloader imageDownloader;
+
     private ProductService productService;
+
+    @Autowired
+    public ProductPublisherBot(ImageDownloader imageDownloader, ProductService productService, ProductRepository productRepository) {
+        this.imageDownloader = imageDownloader;
+        this.productService = productService;
+        this.productRepository = productRepository;
+    }
+
+
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -56,9 +65,9 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
     }
 
     /**
-     * Метод для публикации товаров каждые 15 минут.
+     * Метод для публикации товаров каждые 10 минут с 6:00 по 23:59.
      */
-    @Scheduled(fixedDelay = 600000) // 15 минут = 900 000 миллисекунд
+    @Scheduled(cron = "0 0/10 6-23 * * *", zone = "Europe/Moscow")
     public void publishProducts() {
         // Найти товары, которые еще не были опубликованы
         List<Product> unpublishedProducts = productRepository.findByPostedFalse();
@@ -91,11 +100,15 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
                 );
 
                 try {
-                    if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
-                        // Если есть изображение, отправляем фото с описанием
-                        sendPhotoWithCaption(product, message);
+                    // Скачиваем изображение перед публикацией
+                    String imagePath = imageDownloader.downloadImage(product.getId());
+
+                    if (imagePath != null) {
+                        // Отправляем фото с описанием
+                        sendPhotoWithCaption(imagePath, message);
+                        new File(imagePath).delete();
                     } else {
-                        // Если изображение отсутствует, отправляем только текст
+                        // Если изображение не удалось скачать, отправляем только текст
                         sendTextMessage(message);
                     }
 
@@ -123,10 +136,10 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
         execute(sendMessage);
     }
 
-    private void sendPhotoWithCaption(Product product, String caption) throws TelegramApiException {
-        File imageFile = new File(product.getImagePath());
+    private void sendPhotoWithCaption(String imagePath, String caption) throws TelegramApiException {
+        File imageFile = new File(imagePath);
         if (!imageFile.exists()) {
-            throw new RuntimeException("Файл изображения не найден: " + product.getImagePath());
+            throw new RuntimeException("Файл изображения не найден: " + imagePath);
         }
 
         InputFile photo = new InputFile(imageFile);
@@ -175,5 +188,25 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
         }
 
         return hashtagsBuilder.toString().trim(); // Убираем лишний пробел в конце
+    }
+
+    @Scheduled(fixedDelay = 86400000) // Очистка раз в сутки
+    public void cleanTempImages() {
+        File imagesDir = new File("/tmp/images");
+        if (imagesDir.exists()) {
+            for (File file : imagesDir.listFiles()) {
+                if (file.isFile() && System.currentTimeMillis() - file.lastModified() > 86400000) {
+                    file.delete(); // Удаляем файлы старше 24 часов
+                }
+            }
+        }
+    }
+
+    @PostConstruct
+    private void initializeImagesDirectory() {
+        File imagesDir = new File("/tmp/images");
+        if (!imagesDir.exists()) {
+            imagesDir.mkdirs(); // Создаем папку, если она не существует
+        }
     }
 }
