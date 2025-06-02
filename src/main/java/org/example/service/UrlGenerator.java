@@ -1,12 +1,11 @@
 package org.example.service;
 
-import org.example.model.Categories;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
+/**
+ * Сервис для генерации URL-адресов к данным о товаре.
+ * Генерирует ссылки на историю цен и изображения товаров на основе их идентификатора.
+ */
 @Service
 public class UrlGenerator {
 

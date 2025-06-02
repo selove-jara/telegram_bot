@@ -6,6 +6,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * DTO для представления продукта.
+ */
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

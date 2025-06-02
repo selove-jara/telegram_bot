@@ -18,6 +18,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
+/**
+ * Сервис для получения и сохранения подробной информации о продукте по ID.
+ * Выполняет запросы к внешнему API Wildberries, сохраняет или обновляет данные о продуктах,
+ * а также периодически проверяет изменения цен.
+ */
 @Slf4j
 @Service
 public class ProductDetails {
@@ -71,38 +76,38 @@ public class ProductDetails {
     public void productSave(List<ProductDTO> productDTOs) {
         for (ProductDTO productDTO : productDTOs) {
             try {
-                // Преобразуем ProductDTO в Product
                 Product product = convertToProduct(productDTO);
 
-                // Получаем продукт из базы данных по ID
                 Product existingProduct = productRepository.findById(product.getId()).orElse(null);
 
                 if (existingProduct != null) {
+                    // Условие: цена снизилась на 5% или больше, и товара в наличии >= 3, и цена не нулевая
                     if (product.getProduct() <= existingProduct.getProduct() * 0.95 && product.getTotalQuantity() >= 3 && product.getProduct() != 0) {
                      log.info("Цена продукта {} обновлена. Старая цена: {}, Новая цена: {}. Флаг posted снят.",
                                                       existingProduct.getId(), existingProduct.getProduct(), product.getProduct());
                         existingProduct.setProduct(product.getProduct());
                         existingProduct.setTotalQuantity(product.getTotalQuantity());
-                        existingProduct.setPosted(false); // Снимаем флаг posted
+                        existingProduct.setPosted(false);
                         productService.save(existingProduct);
-
+                        // Условие: цена выросла
                     } else if (existingProduct.getProduct() < product.getProduct()) {
                         log.info("Цена продукта {} увеличилась. Старая цена: {}, Новая цена: {}. Устанавливаем флаг posted.",
                                 existingProduct.getId(), existingProduct.getProduct(), product.getProduct());
                         existingProduct.setTotalQuantity(product.getTotalQuantity());
-                        existingProduct.setPosted(true); // Устанавливаем флаг posted
+                        existingProduct.setPosted(true);
                         productService.save(existingProduct);
+                        // Условие: товар закончился или цена нулевая
                     } else if (product.getTotalQuantity() == 0 || product.getProduct() == 0) {
                         existingProduct.setTotalQuantity(product.getTotalQuantity());
-                        existingProduct.setPosted(true); // Устанавливаем флаг posted
+                        existingProduct.setPosted(true);
                         productService.save(existingProduct);
                     } else {
-                        // Цена не изменилась
+                        // Цена и количество не изменились
                         log.info("Цена продукта {} осталась неизменной: {}. Проверка других параметров...",
                                 existingProduct.getId(), existingProduct.getProduct());
                     }
                 } else {
-                    // Если продукта нет в базе, сохраняем его
+                    // Новый товар: загружаем изображение и сохраняем
                     product.setImagePath(imageDownloader.downloadImage(product.getId()));
                     productService.save(product);
                     log.info("Продукт {} сохранен в БДД.", product.getId());
@@ -119,29 +124,30 @@ public class ProductDetails {
         product.setName(productDTO.getName());
         product.setTotalQuantity(productDTO.getTotalQuantity());
 
-        // Извлекаем цену из sizes (если sizes не пустой)
         if (productDTO.getSizes() != null && !productDTO.getSizes().isEmpty()) {
-            Size size = productDTO.getSizes().get(0); // Берем первый размер
+            Size size = productDTO.getSizes().get(0);
             if (size.getPrice() != null) {
                 product.setBasic(size.getPrice().getBasic() / 100);
                 product.setProduct(size.getPrice().getProduct() / 100);
             }
         }
 
-        // Устанавливаем флаг posted в false по умолчанию
+
         product.setPosted(false);
 
         return product;
     }
 
-   @Scheduled(fixedRate = 2 * 60 * 60 * 1000) // Запуск каждые 2 часов
+    /**
+     * Периодическая проверка всех товаров из БД.
+     * Запускается каждые 2 часа.
+     */
+   @Scheduled(fixedRate = 2 * 60 * 60 * 1000)
     public void checkPricesPeriodically() {
         log.info("Запуск периодической проверки цен товаров...");
 
-        // Получаем все товары из базы данных
         List<Product> products = productRepository.findAll();
 
-        // Для каждого товара запускаем проверку цен
         for (Product product : products) {
             parseProduct(product.getId());
         }

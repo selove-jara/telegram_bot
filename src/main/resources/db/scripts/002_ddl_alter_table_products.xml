@@ -7,7 +7,7 @@
 
     <changeSet id="3" author="Andrey Morozov">
         <createTable tableName="products">
-            <!-- Основные поля -->
+
             <column name="id" type="BIGINT">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -18,14 +18,13 @@
                 <constraints nullable="false"/>
             </column>
 
-            <!-- Поля для цен -->
             <column name="basic" type="INT">
                 <constraints nullable="false"/>
             </column>
             <column name="product" type="INT">
                 <constraints nullable="false"/>
             </column>
-            <column name="old_price" type="INT">
+            <column name="average_price" type="INT">
                 <constraints nullable="false"/>
             </column>
 
@@ -34,7 +33,7 @@
             </column>
 
             <column name="image_path" type="VARCHAR(255)">
-                <constraints nullable="true"/> <!-- Может быть null, если изображение отсутствует -->
+                <constraints nullable="true"/>
             </column>
         </createTable>
     </changeSet>

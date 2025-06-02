@@ -11,7 +11,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-
+/**
+ * Сервис для загрузки и обработки категорий с внешнего источника.
+ * Загружает JSON с категориями при старте приложения и сохраняет их в базу данных.
+ */
 @Service
 public class CategoriesService {
 
@@ -25,6 +28,10 @@ public class CategoriesService {
         this.categoriesRepository = categoriesRepository;
     }
 
+    /**
+     * Метод вызывается автоматически после создания бина.
+     * Загружает категории по URL и сохраняет их в базу данных.
+     */
     @PostConstruct
     public void fetchCategoriesOnStartup() {
         try {
@@ -35,6 +42,10 @@ public class CategoriesService {
         }
     }
 
+    /**
+     * Загрузка категорий.
+     * Фильтрация категорий.
+     */
     private void processCategories() throws IOException {
         List<Categories> loadedCategories = loadCategoriesFromUrl(url);
         categories = filterCategories(loadedCategories);
@@ -61,7 +72,6 @@ public class CategoriesService {
     }
 
     private void saveCategoryWithChildren(Categories category, Categories parent) {
-        // Список ID категорий, которые не нужно сохранять
         Set<Long> excludedIds = new HashSet<>(Arrays.asList(
                 307L, 128296L, 8160L, 10520L, 8161L, 8162L, 8163L, 8167L, 8164L, 8165L,
                 8166L, 8172L, 8173L, 334L, 335L, 336L, 337L, 338L, 339L, 340L,
@@ -206,16 +216,16 @@ public class CategoriesService {
                 62206L, 62204L, 62195L, 62385L, 62201L, 62064L
         ));
 
-
-        // Проверяем, чтобы shard не был пустым или null, и ID категории не входит в исключения
+        /**
+         * Проверяем, чтобы shard не был пустым или null, и ID категории не входит в исключения.
+         * Если не входит в исключения, то сохраняем.
+         * Так же делаем и с дочерними
+         */
         if (category.getShard() == null || category.getShard().isEmpty() || excludedIds.contains(category.getId())) {
-            return; // Пропускаем сохранение этой категории
+            return;
         }
-
-        // Сохраняем категорию
         Categories savedCategory = categoriesRepository.save(category);
 
-        // Рекурсивно сохраняем дочерние категории
         if (category.getChilds() != null) {
             for (Categories child : category.getChilds()) {
                 saveCategoryWithChildren(child, savedCategory);

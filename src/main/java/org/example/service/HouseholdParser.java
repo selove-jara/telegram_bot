@@ -21,6 +21,10 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Сервис для парсинга товаров из определённой категории (например, товары для дома) с сайта Wildberries.
+ * Парсит страницы с товарами, извлекает информацию и сохраняет в БД только подходящие по условиям товары.
+ */
 @Slf4j
 @Service
 public class HouseholdParser {
@@ -39,6 +43,10 @@ public class HouseholdParser {
         this.productService = productService;
     }
 
+    /**
+     * Асинхронный метод для запуска процесса парсинга.
+     * Циклически перебирает категории и страницы в каждой категории, отправляет HTTP-запросы и обрабатывает полученные товары.
+     */
     @Async
     public CompletableFuture<Void> parseCategory() {
         while (true) {
@@ -91,6 +99,14 @@ public class HouseholdParser {
         }
     }
 
+    /**
+     * Метод обрабатывает список товаров:
+     * - извлекает нужные данные из DTO
+     * - проверяет историю цен
+     * - рассчитывает скидку
+     * - фильтрует по условиям (скидка, остаток, цена)
+     * - сохраняет подходящие товары в базу
+     */
     private List<Product> processProducts(List<ProductDTO> products) {
         List<Product> result = new ArrayList<>();
 
@@ -108,16 +124,16 @@ public class HouseholdParser {
                 }
             }
 
-            int oldPric = priceHistoryService.getPriceHistory(product.getId());
-            product.setOldPrice(oldPric / 100);
-            if (oldPric == 0) {
+            int averagePric = priceHistoryService.getPriceHistory(product.getId());
+            product.setAveragePrice(averagePric / 100);
+            if (averagePric == 0) {
                 log.warn("История цен недоступна для товара из категории предметов {}. Пропускаем.", product.getId());
                 continue;
             }
 
-            int sale = (int) (((double) (product.getOldPrice() - product.getProduct()) / product.getOldPrice()) * 100);
+            int sale = (int) (((double) (product.getAveragePrice() - product.getProduct()) / product.getAveragePrice()) * 100);
 
-            if (sale > 40 && product.getTotalQuantity() > 10 && product.getProduct() < product.getOldPrice() && product.getOldPrice() != 0) {
+            if (sale > 40 && product.getTotalQuantity() > 10 && product.getProduct() < product.getAveragePrice() && product.getAveragePrice() != 0) {
                 productService.saveNewProduct(product);
             } else {
                 log.warn("Условия не подходят для предметов {}. Пропускаем.", product.getId());

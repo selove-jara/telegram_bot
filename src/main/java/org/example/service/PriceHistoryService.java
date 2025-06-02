@@ -14,6 +14,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
+/**
+ * Сервис получения истории цен по ID товара.
+ * Выполняет HTTP-запрос к внешнему ресурсу, получает JSON-ответ,
+ * парсит его в список объектов PriceHistoryEntry и вычисляет среднюю цену.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,7 +42,7 @@ public class PriceHistoryService {
 
             if (jsonResponse == null) {
                 log.warn("История цен для продукта {} недоступна (404)", productId);
-                return averagePrice; // Возвращаем 0, если история цен недоступна
+                return averagePrice;
             }
 
             List<PriceHistoryEntry> entries = objectMapper.readValue(jsonResponse, new TypeReference<List<PriceHistoryEntry>>() {});
@@ -45,13 +50,11 @@ public class PriceHistoryService {
                 int totalPrices = 0;
                 int count = 0;
 
-                // Суммируем все цены
                 for (PriceHistoryEntry entry : entries) {
                     totalPrices += entry.getPrice().getRUB();
                     count++;
                 }
 
-                // Вычисляем среднюю цену
                 if (count > 0) {
                     averagePrice = totalPrices / count;
                     log.debug("Средняя цена: {}", averagePrice);
@@ -64,6 +67,9 @@ public class PriceHistoryService {
         return averagePrice;
     }
 
+    /**
+     * Выполняет HTTP GET-запрос по-указанному URL и возвращает JSON-ответ в виде строки.
+     */
     private String fetchJsonFromUrl(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -71,7 +77,7 @@ public class PriceHistoryService {
 
         int responseCode = connection.getResponseCode();
         if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-            return null; // Возвращаем null, если товар не найден
+            return null;
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {

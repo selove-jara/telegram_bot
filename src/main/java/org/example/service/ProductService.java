@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Сервис для сохранения информации о продуктах.
+ * Обеспечивает сохранение новых товаров и логирование операций.
+ */
 @Slf4j
 @Service
 @AllArgsConstructor

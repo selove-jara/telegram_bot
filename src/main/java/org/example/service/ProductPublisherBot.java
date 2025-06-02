@@ -22,7 +22,8 @@ import java.util.List;
 public class ProductPublisherBot extends TelegramLongPollingBot {
 
     private static final String BOT_TOKEN = "7807555157:AAGyXDruNDICaJYp2aG69uUfEfWoYpXrzx8";
-    private static final String CHANNEL_ID = "@skidki_Ozon_Wildberries_sale";
+    //private static final String CHANNEL_ID = "@skidki_Ozon_Wildberries_sale";
+    private static final String CHANNEL_ID = "@public_products";
     private int currentHashtagIndex = 0;
     private final List<String> hashtags = Arrays.asList(
             "#выгодно", "#акция",
@@ -69,56 +70,48 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
      */
     @Scheduled(cron = "0 0/10 6-23 * * *", zone = "Europe/Moscow")
     public void publishProducts() {
-        // Найти товары, которые еще не были опубликованы
         List<Product> unpublishedProducts = productRepository.findByPostedFalse();
 
         if (!unpublishedProducts.isEmpty()) {
-            // Перемешиваем список товаров
             Collections.shuffle(unpublishedProducts);
 
-            // Берем первый товар из списка
             Product product = unpublishedProducts.get(0);
 
-            // Проверяем, что количество товара не меньше 3 и цена не равна 0
             if (product.getTotalQuantity() >= 3 && product.getProduct() > 0) {
-                // Экранируем только те части, которые не являются Markdown-разметкой
+                String imagePath = imageDownloader.downloadImage(product.getId());
+
+                if (imagePath == null) {
+                    System.out.println("Изображение не найдено для товара: " + product.getName());
+                    return; // Пропускаем этот товар
+                }
+
                 String escapedName = escapeMarkdownV2(product.getName());
                 String escapedProductPrice = escapeMarkdownV2(String.valueOf(product.getProduct()));
                 String escapedBasicPrice = escapeMarkdownV2(String.valueOf(product.getBasic()));
 
-                // Формируем сообщение для публикации
                 String message = String.format(
                         "✨ *%s* ✨\n\n" + // Упрощенная разметка
                                 "🤑 Цена: ~%s~ ₽ \\- %s ₽ \n\n" + // Экранируем дефис
                                 "👉 [Ссылка на товар](https://www.wildberries.ru/catalog/%d/detail.aspx) \n" +
                                 "\n%s",
-                        escapedName, // Уже экранировано
-                        escapedBasicPrice, // Уже экранировано
-                        escapedProductPrice, // Уже экранировано
+                        escapedName,
+                        escapedBasicPrice,
+                        escapedProductPrice,
                         product.getId(),
                         getNextHashtags()
                 );
 
                 try {
-                    // Скачиваем изображение перед публикацией
-                    String imagePath = imageDownloader.downloadImage(product.getId());
+                    sendPhotoWithCaption(imagePath, message);
 
-                    if (imagePath != null) {
-                        // Отправляем фото с описанием
-                        sendPhotoWithCaption(imagePath, message);
-                        new File(imagePath).delete();
-                    } else {
-                        // Если изображение не удалось скачать, отправляем только текст
-                        sendTextMessage(message);
-                    }
-
-                    // Обновляем флаг posted в базе данных
                     product.setPosted(true);
                     productService.save(product);
                     System.out.println("Товар успешно опубликован: " + product.getName());
                 } catch (Exception e) {
                     System.out.println("Ошибка при публикации товара: " + product.getName());
                     e.printStackTrace();
+                } finally {
+                    new File(imagePath).delete();
                 }
             } else {
                 System.out.println("Товар не опубликован, так как его количество меньше 3 или цена равна 0: " + product.getName());
@@ -132,7 +125,7 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(CHANNEL_ID);
         sendMessage.setText(message);
-        sendMessage.setParseMode("MarkdownV2"); // Устанавливаем parse_mode перед отправкой
+        sendMessage.setParseMode("MarkdownV2");
         execute(sendMessage);
     }
 
@@ -177,26 +170,25 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
 
     private String getNextHashtags() {
         StringBuilder hashtagsBuilder = new StringBuilder();
-        hashtagsBuilder.append("🔥 [Мир скидок](https://t.me/+DJHQEb0s6D9kZjYy) "); // Добавляем ссылку один раз
+        hashtagsBuilder.append("🔥 [Мир скидок](https://t.me/+DJHQEb0s6D9kZjYy) ");
         Collections.shuffle(hashtags);
         for (int i = 0; i < 3; i++) {
             String hashtag = hashtags.get(currentHashtagIndex);
             hashtagsBuilder.append(hashtag.replace("#", "\\#")).append(" "); // Добавляем хэштег
 
-            // Переходим к следующему хэштегу
             currentHashtagIndex = (currentHashtagIndex + 1) % hashtags.size();
         }
 
-        return hashtagsBuilder.toString().trim(); // Убираем лишний пробел в конце
+        return hashtagsBuilder.toString().trim();
     }
 
-    @Scheduled(fixedDelay = 86400000) // Очистка раз в сутки
+    @Scheduled(fixedDelay = 86400000) //
     public void cleanTempImages() {
         File imagesDir = new File("/tmp/images");
         if (imagesDir.exists()) {
             for (File file : imagesDir.listFiles()) {
                 if (file.isFile() && System.currentTimeMillis() - file.lastModified() > 86400000) {
-                    file.delete(); // Удаляем файлы старше 24 часов
+                    file.delete();
                 }
             }
         }
@@ -206,7 +198,7 @@ public class ProductPublisherBot extends TelegramLongPollingBot {
     private void initializeImagesDirectory() {
         File imagesDir = new File("/tmp/images");
         if (!imagesDir.exists()) {
-            imagesDir.mkdirs(); // Создаем папку, если она не существует
+            imagesDir.mkdirs();
         }
     }
 }

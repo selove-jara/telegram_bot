@@ -19,9 +19,15 @@ services:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
   app:
-    image: market-parsing-app
+    image: market-parsing
     container_name: market-parsing-container
     ports:
       - "8080:8080"
@@ -31,10 +37,16 @@ services:
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
       db:
-        condition: service_healthy  # Ждем, пока БД будет готова
+        condition: service_healthy
     networks:
       - app-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
 volumes:
   postgres_data:

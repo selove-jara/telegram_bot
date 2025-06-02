@@ -42,7 +42,7 @@ public class СlothesParser {
 
     @Async
     public CompletableFuture<Void> parseCategory() {
-        while (true) { // Бесконечный цикл
+        while (true) {
             List<Categories> categoryList = new ArrayList<>(categories);
             Collections.shuffle(categoryList);
 
@@ -107,16 +107,16 @@ public class СlothesParser {
                 }
             }
 
-            int oldPric = priceHistoryService.getPriceHistory(product.getId());
-            product.setOldPrice(oldPric / 100);
-            if (oldPric == 0) {
+            int averagePric = priceHistoryService.getPriceHistory(product.getId());
+            product.setAveragePrice(averagePric / 100);
+            if (averagePric == 0) {
                 log.warn("История цен недоступна для товара из категории одежды {}. Пропускаем.", product.getId());
                 continue;
             }
 
-            int sale = (int) (((double) (product.getOldPrice() - product.getProduct()) / product.getOldPrice()) * 100);
+            int sale = (int) (((double) (product.getAveragePrice() - product.getProduct()) / product.getAveragePrice()) * 100);
 
-            if (sale > 50 && product.getTotalQuantity() > 3 && product.getProduct() < product.getOldPrice() && product.getOldPrice() != 0) {
+            if (sale > 50 && product.getTotalQuantity() > 3 && product.getProduct() < product.getAveragePrice() && product.getAveragePrice() != 0) {
                 productService.saveNewProduct(product);
             } else {
                 log.warn("Условия не подходят для одежды {}. Пропускаем.", product.getId());

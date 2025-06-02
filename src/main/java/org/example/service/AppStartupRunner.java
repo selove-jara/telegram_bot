@@ -16,6 +16,6 @@ public class AppStartupRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        parserLauncher.launchParsers(); // Запуск парсеров
+        parserLauncher.launchParsers();
     }
 }

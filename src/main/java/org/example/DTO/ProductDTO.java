@@ -5,6 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * DTO для представления продукта с маркетплейса.
+ */
+
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductDTO {

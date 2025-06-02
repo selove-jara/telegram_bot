@@ -9,6 +9,11 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Data;
 
+/**
+ * Сущность категории товаров.
+ * Соответствует таблице "categories" в БД.
+ */
+
 @Entity
 @Table(name = "categories")
 @Data
@@ -17,11 +22,11 @@ public class Categories {
     @Id
     private long id;
 
-    private String shard;
+    private String shard; // Ссылка на категорию
 
     @JsonProperty("childs")
     @Transient
-    private List<Categories> childs;
+    private List<Categories> childs; // дочернии категории
 
     public Categories(long id, String shard) {
         this.id = id;

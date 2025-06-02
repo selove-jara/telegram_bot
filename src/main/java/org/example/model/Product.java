@@ -1,12 +1,12 @@
 package org.example.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Сущность продукта для хранения в базе данных.
+ * Соответствует таблице "products" в БД.
+ */
 
 @Entity
 @Table(name = "products")
@@ -17,18 +17,18 @@ public class Product {
 
     private String name;
 
-    private int totalQuantity;
+    private int totalQuantity; // Остаток товара
 
-    private int basic;
+    private int basic; //Цена базовая
 
-    private int product;
+    private int product; //Цена покупателя
 
-    @Column(name = "old_price")
-    private int oldPrice;
+    @Column(name = "average_price")
+    private int averagePrice; // Средняя цена
 
     @Column(name = "posted", nullable = false)
-    private boolean posted = false;
+    private boolean posted = false; //Опубликован
 
     @Column(name = "image_path")
-    private String imagePath;
+    private String imagePath; //Путь до фото
 }

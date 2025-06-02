@@ -8,11 +8,15 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * DTO для хранения списка продуктов, полученных с маркетплейса.
+ */
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Data {
-    private List<ProductDTO> products;
+    private List<ProductDTO> products; // Список продуктов
 }
